@@ -412,18 +412,40 @@
       });
 
       // Highlight the nav link for the section in view
+      // The active section is the last one whose top has passed 35% of the viewport.
+      // At the very bottom of the page the last section wins, since a short final
+      // section (Projects) can never scroll that high on its own.
       var links = document.querySelectorAll('nav.toc a');
-      if ('IntersectionObserver' in window) {
-        var io = new IntersectionObserver(function (entries) {
-          entries.forEach(function (e) {
-            if (!e.isIntersecting) return;
-            links.forEach(function (a) {
-              a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id);
-            });
-          });
-        }, { rootMargin: '-30% 0px -60% 0px' });
-        document.querySelectorAll('main section[id]').forEach(function (s) { io.observe(s); });
+      var sections = document.querySelectorAll('main section[id]');
+      function setActive(id) {
+        links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + id); });
       }
+      var lockedUntil = 0;
+      function update() {
+        if (Date.now() < lockedUntil) return;
+        var current = sections[0].id;
+        var line = window.innerHeight * 0.35;
+        sections.forEach(function (s) { if (s.getBoundingClientRect().top <= line) current = s.id; });
+        var atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+        if (atBottom) current = sections[sections.length - 1].id;
+        setActive(current);
+      }
+      var ticking = false;
+      window.addEventListener('scroll', function () {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () { ticking = false; update(); });
+      }, { passive: true });
+      window.addEventListener('resize', update);
+      // Clicking a menu item highlights it right away, even while the smooth scroll is still moving
+      links.forEach(function (a) {
+        a.addEventListener('click', function () {
+          setActive(a.getAttribute('href').slice(1));
+          lockedUntil = Date.now() + 900;
+          setTimeout(update, 950);
+        });
+      });
+      update();
 
       // "Personal Portfolio" links back to the top of this page
       document.querySelector('.project h3 a').addEventListener('click', function (e) {
