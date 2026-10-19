@@ -1,0 +1,8 @@
+# Only publish the site itself: index.html, the résumé PDF and the optimized images
+.claude
+old
+.vercel
+.env*
+.gitignore
+banner3.png
+images/portfolio-background.png
